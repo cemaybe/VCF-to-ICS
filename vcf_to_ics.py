@@ -46,6 +46,7 @@ import time
 import sys
 import os
 import re
+import datetime
 
 # CONFIGURATION
 
@@ -105,7 +106,7 @@ fileOutput.write("BEGIN:VCALENDAR\nPRODID:-//" + PROGRAM_NAME + "//NONSGML " + s
 for sVCard in sVCards:
 	# "BDAY:--12-01" --> ["BDAY:--12-01", "-", "12", "01"]
 	# "BDAY:2018-12-01" --> ["BDAY:2018-12-01", "2018", "12", "01"]
-	matchBirthday = re.search("BDAY:(\-|\d+)-(\d+)-(\d+)[\s\S]*?", sVCard)
+	matchBirthday = re.search("BDAY;VALUE=date:(\-|\d+)-(\d+)-(\d+)[\s\S]*?", sVCard)
 	# "FN:John Doe" --> ["FN:John Doe", "John Doe"]
 	# "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=4A=6F=68=6E=20=44=6F=65" --> ["FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=4A=6F=68=6E=20=44=6F=65", "=4A=6F=68=6E=20=44=6F=65"]
 	matchName = re.search("FN(?:\:|;.*:)(.*)[\s\S]*?", sVCard)
@@ -133,8 +134,13 @@ for sVCard in sVCards:
 		# Unique ID
 		sUID = sBirthday + "-" + ''.join([random.choice(list(ascii_letters + digits)) for _ in range(16)]) + "@VCFtoICS.com"
 
+		# Next day after birthday to make the event correctly show as "takes a whole day" https://stackoverflow.com/questions/6871016/adding-days-to-a-date-in-python
+		date_1 = datetime.datetime.strptime(sBirthday, "%Y%m%d")
+		next_day = date_1 + datetime.timedelta(days=1)
+		sNextDayAfterBirthday = next_day.strftime("%Y%m%d")
+
 		# Write ICS event
-		fileOutput.write("BEGIN:VEVENT\nDTSTART:" + sBirthday + "\nSUMMARY:" + sName + "\nRRULE:FREQ=YEARLY\nDURATION:P1D\nUID:" + sUID + "\nEND:VEVENT\n")
+		fileOutput.write("BEGIN:VEVENT\nDTSTART;VALUE=DATE:" + sBirthday + "\nDTEND;VALUE=DATE:" + sNextDayAfterBirthday + "\nSUMMARY:" + sName + "\nRRULE:FREQ=YEARLY\nUID:" + sUID + "\nEND:VEVENT\n")
 
 if (iVCardNbr > 0):
 	logger.info(str(iVCardNbr) + " VCards found")
